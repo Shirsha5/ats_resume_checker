@@ -1,0 +1,11 @@
+ats_env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+*.env
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ATS Resume Checker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-dashboard me-2"></i>Dashboard</h2>
+            <span class="badge bg-success">Welcome, {{ user.username }}!</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Quick Actions -->
+    <div class="col-md-6">
+        <div class="card h-100 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Upload Resumes</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Upload up to 10 resume files (PDF/DOCX) for automated screening based on M&A intern criteria.</p>
+                <a href="{{ url_for('upload_files') }}" class="btn btn-primary">
+                    <i class="fas fa-upload me-2"></i>Start Upload
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>View Results</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">View and analyze processed resume results with detailed categorization and scoring.</p>
+                <a href="{{ url_for('show_results') }}" class="btn btn-success">
+                    <i class="fas fa-chart-bar me-2"></i>View Results
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Information -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>M&A Intern Screening Criteria</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Long-term Intern Requirements (ALL required):</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check-circle text-success me-2"></i>Academic Year: 3rd/4th/5th year (5-year) or 2nd/3rd year (3-year)</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i>CGPA: Minimum 7.5/10, no backlogs</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i>Company Law coursework</li>
+                            <li><i class="fas fa-check-circle text-success me-2"></i>Contract Law coursework</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-info">Short-term Intern Requirements:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check-circle text-info me-2"></i>Academic Year OR CGPA requirement</li>
+                            <li><i class="fas fa-info-circle text-muted me-2"></i>Course requirements not mandatory</li>
+                        </ul>
+
+                        <h6 class="text-warning mt-3">Preference Criteria (Bonus Points):</h6>
+                        <ul class="list-unstyled small">
+                            <li><i class="fas fa-star text-warning me-2"></i>Tier 1/2 law firm experience</li>
+                            <li><i class="fas fa-star text-warning me-2"></i>M&A moot court participation</li>
+                            <li><i class="fas fa-star text-warning me-2"></i>Legal publications/research</li>
+                            <li><i class="fas fa-star text-warning me-2"></i>Faculty recommendations</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
