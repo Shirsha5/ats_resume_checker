@@ -10,6 +10,15 @@ from resume_parser import ResumeParser
 from criteria_evaluator import CriteriaEvaluator
 from models import init_db, User, get_user_by_username, create_user
 import config
+# Add this import after your existing imports
+try:
+    from ml_integration_minimal import create_ml_enhancer
+    ml_enhancer = create_ml_enhancer('ml_models')
+    print(f"🤖 ML Status: {ml_enhancer.get_status()}")
+except ImportError:
+    print("⚠️ ML enhancement not available - continuing with rule-based evaluation")
+    ml_enhancer = None
+
 
 app = Flask(__name__)
 app.config.from_object(config.Config)
@@ -108,17 +117,29 @@ def upload_files():
 
                         # Parse resume
                         parsed_resume = resume_parser.parse_resume(file_path)
-
+                        
                         if 'error' not in parsed_resume:
-                            # Evaluate criteria
-                            classification = criteria_evaluator.classify_candidate(
+                            # Evaluate criteria (RULE-BASED)
+                            rule_result = criteria_evaluator.classify_candidate(
                                 parsed_resume, course_type, internship_type
                             )
-                            classification['upload_time'] = datetime.now().isoformat()
-                            results.append(classification)
+                            
+                            # ADD ML ENHANCEMENT if available
+                            if ml_enhancer and ml_enhancer.ml_enabled:
+                                enhanced_result = ml_enhancer.enhance_evaluation(
+                                    rule_result, 
+                                    parsed_resume, 
+                                    parsed_resume.get('raw_text_preview', '')
+                                )
+                                enhanced_result['upload_time'] = datetime.now().isoformat()
+                                results.append(enhanced_result)
+                            else:
+                                # Use rule-based only (same as before)
+                                rule_result['upload_time'] = datetime.now().isoformat()
+                                results.append(rule_result)
+                            
                             processed_files += 1
-                        else:
-                            error_files.append(f"{filename}: {parsed_resume['error']}")
+
 
                         # Clean up uploaded file
                         if os.path.exists(file_path):

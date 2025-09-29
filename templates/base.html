@@ -12,7 +12,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('dashboard') }}">
-                <i class="fas fa-file-alt me-2"></i>ATS Resume Checker
+                <img src="{{ url_for('static', filename='images/legalogic logo.png') }}" alt="Company Logo" class="me-2" style="height: 40px; width: auto;">ATS Resume Checker
             </a>
 
             {% if current_user.is_authenticated %}
