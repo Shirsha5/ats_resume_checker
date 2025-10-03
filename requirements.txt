@@ -1,10 +1,11 @@
-flask
+Flask
+Flask-Login
 gunicorn
+PyPDF2
 pandas
 numpy
 scikit-learn
 lightgbm
-imblearn
+imbalanced-learn
 torch
 transformers
-PyPDF2
