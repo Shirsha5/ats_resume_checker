@@ -1,3 +1,13 @@
+import subprocess
+try:
+    import spacy
+    spacy.load("en_core_web_sm")
+except:
+    try:
+        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+    except Exception as e:
+        print("SpaCy download failed:", e)
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import os
