@@ -28,7 +28,7 @@ class CriteriaEvaluator:
             return False
 
         if course_type == "5year":
-            return academic_year in [3, 4, 5]  # 3rd, 4th, or 5th year
+            return academic_year in [3, 4, 5,6]  # 3rd, 4th, or 5th year
         else:  # 3year course
             return academic_year in [2, 3]     # 2nd or 3rd year
 

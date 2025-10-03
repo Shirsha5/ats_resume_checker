@@ -22,6 +22,17 @@ except ImportError:
     ML_AVAILABLE = False
     print("⚠️ ML libraries not installed. Run: pip install scikit-learn pandas numpy lightgbm")
 
+# Try to import BERT components for text analysis
+try:
+    import torch
+    from transformers import AutoTokenizer, AutoModel
+    from sklearn.metrics.pairwise import cosine_similarity
+    BERT_AVAILABLE = True
+    print("✅ BERT libraries available")
+except ImportError:
+    BERT_AVAILABLE = False
+    print("⚠️ BERT libraries not available. Run: pip install transformers torch")
+
 class SimpleMLEnhancer:
     """
     Minimal ML enhancement for existing ATS system
@@ -34,6 +45,13 @@ class SimpleMLEnhancer:
         self.ml_enabled = False
         self.classifier = None
         self.feature_names = []
+        # BERT components for text analysis
+        self.bert_enabled = False
+        self.bert_tokenizer = None
+        self.bert_model = None
+        self.experience_embeddings = None
+        self.bert_model_name = "sentence-transformers/all-MiniLM-L6-v2"
+
         
         # Set up logging
         logging.basicConfig(level=logging.INFO)
@@ -41,6 +59,11 @@ class SimpleMLEnhancer:
         
         if ML_AVAILABLE:
             self._try_load_models()
+        
+        # Try to load BERT if available
+        if BERT_AVAILABLE:
+            self._load_bert_models()
+
     
     def _try_load_models(self):
         """Try to load ML models, fail gracefully if not available"""
@@ -73,6 +96,85 @@ class SimpleMLEnhancer:
         except Exception as e:
             self.logger.warning(f"⚠️ Could not load ML models: {e}")
             self.ml_enabled = False
+    
+    def _load_bert_models(self):
+        """Load BERT model for text analysis"""
+        try:
+            self.bert_tokenizer = AutoTokenizer.from_pretrained(self.bert_model_name)
+            self.bert_model = AutoModel.from_pretrained(self.bert_model_name)
+            
+            # Create experience embeddings
+            self._create_experience_embeddings()
+            self.bert_enabled = True
+            self.logger.info("✅ BERT text analysis enabled")
+        except Exception as e:
+            self.logger.warning(f"⚠️ BERT loading failed: {e}")
+            self.bert_enabled = False
+
+    def _create_experience_embeddings(self):
+        """Create embeddings for ideal M&A experiences"""
+        ideal_experiences = [
+            "mergers acquisitions corporate law",
+            "tier firm internship corporate transactions",
+            "company law contract law legal research",
+            "moot court corporate law competition",
+            "legal research corporate governance",
+            "due diligence private equity",
+            "corporate compliance securities law",
+        ]
+        
+        embeddings = []
+        for exp in ideal_experiences:
+            embedding = self._get_text_embedding(exp)
+            if embedding is not None:
+                embeddings.append(embedding)
+        
+        if embeddings:
+            self.experience_embeddings = np.array(embeddings)
+
+    def _get_text_embedding(self, text):
+        """Get BERT embedding for text"""
+        if not self.bert_model or not text:
+            return None
+        try:
+            inputs = self.bert_tokenizer(text, return_tensors="pt", truncation=True, 
+                                       padding=True, max_length=512)
+            with torch.no_grad():
+                outputs = self.bert_model(**inputs)
+                embedding = outputs.last_hidden_state.mean(dim=1).squeeze().numpy()
+            return embedding
+        except:
+            return None
+
+    def _analyze_resume_text(self, resume_text):
+        """Analyze resume text with BERT"""
+        if not self.bert_enabled or not resume_text:
+            return {'text_quality_score': 0.5, 'bert_insights': []}
+        
+        try:
+            resume_embedding = self._get_text_embedding(resume_text)
+            if resume_embedding is None:
+                return {'text_quality_score': 0.5, 'bert_insights': []}
+            
+            similarities = cosine_similarity([resume_embedding], self.experience_embeddings)[0]
+            max_similarity = np.max(similarities)
+            avg_similarity = np.mean(similarities)
+            
+            insights = []
+            if max_similarity > 0.7:
+                insights.append("🌟 Highly relevant M&A experience detected")
+            elif max_similarity > 0.5:
+                insights.append("✅ Good corporate law background")
+            else:
+                insights.append("📋 Limited M&A-specific experience")
+            
+            return {
+                'text_quality_score': float(avg_similarity),
+                'bert_insights': insights
+            }
+        except:
+            return {'text_quality_score': 0.5, 'bert_insights': []}
+
     
     def extract_features_for_model(self, parsed_resume: Dict, raw_text: str) -> Dict[str, float]:
         """
@@ -150,20 +252,41 @@ class SimpleMLEnhancer:
                 if hasattr(self.classifier, 'predict_proba'):
                     probabilities = self.classifier.predict_proba(feature_df)[0]
                     confidence = max(probabilities)
-                    hire_probability = probabilities[1] if len(probabilities) > 1 else prediction
+                    lgb_hire_probability = probabilities[1] if len(probabilities) > 1 else prediction
                 else:
                     confidence = 0.8  # High confidence for simple model
-                    hire_probability = prediction
+                    lgb_hire_probability = prediction
                 
+                # Get BERT text analysis
+                bert_analysis = self._analyze_resume_text(raw_text)
+                bert_probability = bert_analysis['text_quality_score']
+                
+                # Combine LightGBM + BERT (60% LGB + 40% BERT)
+                if self.bert_enabled:
+                    hire_probability = (lgb_hire_probability * 0.6) + (bert_probability * 0.4)
+                    method_used = "LightGBM + BERT Hybrid"
+                else:
+                    hire_probability = lgb_hire_probability
+                    method_used = "LightGBM Only"
+                
+                # Generate LightGBM insights
+                lgb_insights = self._generate_insights(all_features, prediction, hire_probability)
+                
+                # Get BERT insights if available
+                bert_insights = bert_analysis.get('bert_insights', []) if self.bert_enabled else []
+                
+                # Combine all insights
+                all_insights = lgb_insights + bert_insights
+
                 # Update ML enhancement
                 enhanced_result['ml_enhancement'].update({
                     'ml_prediction': int(prediction),
                     'ml_hire_probability': float(hire_probability),
                     'ml_confidence': float(confidence),
                     'feature_values': dict(zip(self.feature_names, feature_vector)),
-                    'ml_insights': self._generate_insights(all_features, prediction, hire_probability)
+                    'ml_insights': all_insights[:8]  # Show top 8 insights total
                 })
-                
+
                 # Add ML recommendation
                 enhanced_result['ml_recommendation'] = self._get_ml_recommendation(
                     hire_probability, confidence
@@ -212,9 +335,9 @@ class SimpleMLEnhancer:
         
         if features.get('legal_research', 0) == 1:
             insights.append("🔍 Legal research experience adds value")
-        
-        return insights[:4]  # Limit to 4 insights
-    
+
+        return insights[:8]  # Limit to 8 insights
+
     def _get_ml_recommendation(self, hire_prob: float, confidence: float) -> Dict:
         """Get ML recommendation based on hire probability and confidence"""
         

@@ -1,3 +1,318 @@
+{% comment %} {% extends "base.html" %}
+
+{% block title %}Results - ATS Resume Checker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-chart-bar me-2"></i>Screening Results</h2>
+            <div>
+                <a href="{{ url_for('export_results') }}" class="btn btn-success me-2">
+                    <i class="fas fa-download me-2"></i>Export CSV
+                </a>
+                <a href="{{ url_for('upload_files') }}" class="btn btn-primary">
+                    <i class="fas fa-upload me-2"></i>Upload More
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Overview -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ statistics.total_candidates }}</h3>
+                <small>Total Candidates</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ statistics.ma_team_count }}</h3>
+                <small>M&A Team Matches</small>
+                <div class="mt-1">
+                    <small>({{ statistics.ma_team_percentage }}%)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ statistics.shortlisted_count }}</h3>
+                <small>Shortlisted</small>
+                <div class="mt-1">
+                    <small>({{ statistics.shortlisted_percentage }}%)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <h3 class="mb-0">{{ statistics.others_count }}</h3>
+                <small>Others</small>
+                <div class="mt-1">
+                    <small>({{ ((statistics.others_count / statistics.total_candidates) * 100) | round(1) if statistics.total_candidates > 0 else 0 }}%)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Processing Summary -->
+{% if summary %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Processing Summary</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <strong>Files Processed:</strong> {{ summary.processed_files }}/{{ summary.total_files }}
+            </div>
+            <div class="col-md-4">
+                <strong>Course Type:</strong> {{ "5-Year Law Course" if summary.course_type == "5year" else "3-Year Law Course" }}
+            </div>
+            <div class="col-md-4">
+                <strong>Focus:</strong> {{ "Long-term Internship" if summary.internship_type == "long_term" else "Short-term Internship" }}
+            </div>
+        </div>
+        {% if summary.error_files %}
+        <div class="mt-2">
+            <strong class="text-danger">Errors:</strong>
+            <ul class="list-unstyled small text-danger mb-0">
+                {% for error in summary.error_files %}
+                <li><i class="fas fa-exclamation-triangle me-1"></i>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- M&A Team Matches -->
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-star me-2"></i>M&A Team Matches ({{ ma_team_matches|length }})
+            <span class="badge bg-light text-success ms-2">All Criteria Met</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if ma_team_matches %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>CGPA</th>
+                            <th>Year</th>
+                            <th>Company Law</th>
+                            <th>Contract Law</th>
+                            <th>Preference Score</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for candidate in ma_team_matches %}
+                        <tr>
+                            <td>
+                                <i class="fas fa-file-alt me-2 text-success"></i>
+                                <strong>{{ candidate.filename }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ candidate.cgpa or 'N/A' }}</span>
+                            </td>
+                            <td>{{ candidate.academic_year or 'N/A' }}</td>
+                            <td>
+                                {% if candidate.long_term_evaluation.criteria_met.company_law %}
+                                    <i class="fas fa-check-circle text-success"></i>
+                                {% else %}
+                                    <i class="fas fa-times-circle text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if candidate.long_term_evaluation.criteria_met.contract_law %}
+                                    <i class="fas fa-check-circle text-success"></i>
+                                {% else %}
+                                    <i class="fas fa-times-circle text-danger"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ candidate.preference_score }}</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#details-{{ loop.index }}" aria-expanded="false">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="collapse" id="details-{{ loop.index }}">
+                            <td colspan="7">
+                                <div class="card bg-light">
+                                    <div class="card-body small">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <strong>Experience:</strong>
+                                                <ul class="list-unstyled mt-1">
+                                                    <li>Legal Research: {{ "Yes" if candidate.experience_summary.legal_research else "No" }}</li>
+                                                    <li>Moot Court: {{ "Yes" if candidate.experience_summary.moot_court else "No" }}</li>
+                                                    <li>Tier Firm: {{ "Yes" if candidate.experience_summary.tier_firm_internship else "No" }}</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <strong>Preference Breakdown:</strong>
+                                                <ul class="list-unstyled mt-1">
+                                                    {% for key, value in candidate.preference_details.items() %}
+                                                    <li>{{ key.replace('_', ' ').title() }}: +{{ value }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-info-circle fa-2x mb-3"></i>
+                <p>No candidates met all M&A team criteria.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Shortlisted Candidates -->
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>Shortlisted Candidates ({{ shortlisted|length }})
+            <span class="badge bg-dark ms-2">Basic Criteria Met</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if shortlisted %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>CGPA</th>
+                            <th>Year</th>
+                            <th>Score</th>
+                            <th>Preference</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for candidate in shortlisted %}
+                        <tr>
+                            <td>
+                                <i class="fas fa-file-alt me-2 text-warning"></i>
+                                {{ candidate.filename }}
+                            </td>
+                            <td>{{ candidate.cgpa or 'N/A' }}</td>
+                            <td>{{ candidate.academic_year or 'N/A' }}</td>
+                            <td>{{ candidate.short_term_evaluation.score }}/{{ candidate.short_term_evaluation.max_score }}</td>
+                            <td>
+                                <span class="badge bg-info">{{ candidate.preference_score }}</span>
+                            </td>
+                            <td>
+                                {% if candidate.get('special_consideration') %}
+                                    <span class="badge bg-info" title="{{ candidate.special_consideration }}">Special</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Standard</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-info-circle fa-2x mb-3"></i>
+                <p>No candidates were shortlisted.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Others -->
+<div class="card">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-users me-2"></i>Other Candidates ({{ others|length }})
+            <span class="badge bg-light text-dark ms-2">Insufficient Criteria</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if others %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>CGPA</th>
+                            <th>Year</th>
+                            <th>Missing Criteria</th>
+                            <th>Preference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for candidate in others %}
+                        <tr>
+                            <td>
+                                <i class="fas fa-file-alt me-2 text-muted"></i>
+                                {{ candidate.filename }}
+                            </td>
+                            <td>{{ candidate.cgpa or 'N/A' }}</td>
+                            <td>{{ candidate.academic_year or 'N/A' }}</td>
+                            <td>
+                                <small>
+                                    {% set missing = [] %}
+                                    {% if not candidate.long_term_evaluation.criteria_met.academic_year %}
+                                        {% set _ = missing.append('Academic Year') %}
+                                    {% endif %}
+                                    {% if not candidate.long_term_evaluation.criteria_met.cgpa %}
+                                        {% set _ = missing.append('CGPA') %}
+                                    {% endif %}
+                                    {% if not candidate.long_term_evaluation.criteria_met.company_law %}
+                                        {% set _ = missing.append('Company Law') %}
+                                    {% endif %}
+                                    {% if not candidate.long_term_evaluation.criteria_met.contract_law %}
+                                        {% set _ = missing.append('Contract Law') %}
+                                    {% endif %}
+                                    {{ missing|join(', ') if missing else 'All met' }}
+                                </small>
+                            </td>
+                            <td>{{ candidate.preference_score }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-check-circle fa-2x mb-3 text-success"></i>
+                <p>All candidates met at least the basic criteria!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} {% endcomment %}
+
 {% extends "base.html" %}
 
 {% block title %}Results - ATS Resume Checker{% endblock %}
@@ -27,7 +342,6 @@
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card bg-primary text-white">
-
                 <div class="card-body">
                     <h5>{{ statistics.total_candidates }}</h5>
                     <p class="mb-0">Total Candidates</p>
@@ -214,8 +528,6 @@
                                     <th>ML Analysis</th>
                                     <th>Status</th>
                                     <th>Combined Rating</th>
-                                    <th>M&A Exclusion Reason</th>
-                                    <th>ML Insights</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -264,40 +576,6 @@
                                             <div class="fw-bold text-secondary">{{ candidate.preference_score }}</div>
                                         {% endif %}
                                     </td>
-                                    <td>
-                                        {% set reasons = [] %}
-                                        {% if not candidate.long_term_evaluation.criteria_met.academic_year %}
-                                            {% set _ = reasons.append('Academic Year (' + (candidate.academic_year|string if candidate.academic_year else 'N/A') + ')') %}
-                                        {% endif %}
-                                        {% if not candidate.long_term_evaluation.criteria_met.cgpa %}
-                                            {% set _ = reasons.append('CGPA (' + (candidate.cgpa|string if candidate.cgpa else 'N/A') + ')') %}
-                                        {% endif %}
-                                        {% if not candidate.long_term_evaluation.criteria_met.company_law %}
-                                            {% set _ = reasons.append('Company Law Missing') %}
-                                        {% endif %}
-                                        {% if not candidate.long_term_evaluation.criteria_met.contract_law %}
-                                            {% set _ = reasons.append('Contract Law Missing') %}
-                                        {% endif %}
-                                        
-                                        {% if reasons %}
-                                            {% for reason in reasons %}
-                                                <span class="badge bg-danger mb-1" style="font-size: 0.7em;">{{ reason }}</span><br>
-                                            {% endfor %}
-                                        {% else %}
-                                            <span class="badge bg-success">Eligible for M&A</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                    {% if candidate.ml_enhancement and candidate.ml_enhancement.ml_insights %}
-                                        <div class="ml-insights">
-                                            {% for insight in candidate.ml_enhancement.ml_insights[:5] %}
-                                                <div class="badge bg-light text-dark mb-1" style="font-size: 0.7em;">{{ insight }}</div>
-                                            {% endfor %}
-                                        </div>
-                                    {% else %}
-                                        <small class="text-muted">No insights</small>
-                                    {% endif %}
-                                </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

@@ -29,7 +29,7 @@ class Config:
     TIER_1_FIRMS = [
         'Khaitan & Co', 'AZB Partners', 'Cyril Amarchand Mangaldas', 
         'JSA Advocates and Solicitors', 'Trilegal', 'Shardul Amarchand Mangaldas',
-        'Economic Laws Practice', 'IndusLaw', 'Luthra and Luthra'
+        'Economic Laws Practice', 'IndusLaw', 'Luthra and Luthra','Legalogic Consulting'
     ]
 
     TIER_2_FIRMS = [

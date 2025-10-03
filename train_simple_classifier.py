@@ -133,27 +133,42 @@ X_train_resampled, y_train_resampled = sm.fit_resample(X_train, y_train)
 X_train = pd.DataFrame(X_train_resampled, columns=X_train.columns)
 y_train = pd.Series(y_train_resampled, name='hire_decision')
 
-# 5. RFECV feature selection (preserve feature names)
-base_clf = lgb.LGBMClassifier(
-    n_estimators=100,
-    learning_rate=0.1,
-    max_depth=8,
-    num_leaves=31,
-    random_state=42,
-    verbose=-1  # Suppress warnings
-)
+# # 5. RFECV feature selection (preserve feature names)
+# base_clf = lgb.LGBMClassifier(
+#     n_estimators=100,
+#     learning_rate=0.1,
+#     max_depth=8,
+#     num_leaves=31,
+#     random_state=42,
+#     verbose=-1  # Suppress warnings
+# )
 
-selector = RFECV(
-    estimator=base_clf,
-    cv=3,  # Reduce CV folds to speed up
-    scoring='accuracy',
-    n_jobs=-1
-)
-selector.fit(X_train, y_train)
+# selector = RFECV(
+#     estimator=base_clf,
+#     cv=3,  # Reduce CV folds to speed up
+#     scoring='accuracy',
+#     n_jobs=-1
+# )
+# selector.fit(X_train, y_train)
 
-# Get selected feature names BEFORE transformation
-selected_features = X_train.columns[selector.support_].tolist()
-print("🔍 Selected features (RFECV):", selected_features)
+# 5. FORCED feature selection (no RFECV - use specific features)
+# Force these 4 features instead of automatic selection
+FORCED_FEATURES = ['cgpa', 'academic_year', 'company_law', 'contract_law']
+
+# Check if all forced features exist in data
+available_features = X_train.columns.tolist()
+selected_features = [f for f in FORCED_FEATURES if f in available_features]
+
+if len(selected_features) < len(FORCED_FEATURES):
+    missing = [f for f in FORCED_FEATURES if f not in available_features]
+    print(f"⚠️ Missing features: {missing}")
+    print(f"📋 Available features: {available_features}")
+
+print(f"🎯 FORCED features: {selected_features}")
+
+# # Get selected feature names BEFORE transformation
+# selected_features = X_train.columns[selector.support_].tolist()
+# print("🔍 Selected features (RFECV):", selected_features)
 
 # Transform to selected features but keep as DataFrames
 X_train_selected = X_train[selected_features]
