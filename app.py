@@ -1,12 +1,17 @@
+print("=== APP STARTING ===")
 import subprocess
+import sys
 try:
     import spacy
-    spacy.load("en_core_web_sm")
-except:
     try:
-        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
-    except Exception as e:
-        print("SpaCy download failed:", e)
+        nlp = spacy.load("en_core_web_sm")
+        print("✅ SpaCy model loaded successfully")
+    except OSError:
+        print("⚠️ SpaCy model not found, skipping for now")
+        # Don't download during startup - causes timeouts
+except ImportError:
+    print("⚠️ SpaCy not available")
+print("=== LOADING FLASK ===")
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
