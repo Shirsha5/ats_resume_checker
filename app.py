@@ -1,16 +1,16 @@
 print("=== APP STARTING ===")
 import subprocess
 import sys
-try:
-    import spacy
-    try:
-        nlp = spacy.load("en_core_web_sm")
-        print("✅ SpaCy model loaded successfully")
-    except OSError:
-        print("⚠️ SpaCy model not found, skipping for now")
-        # Don't download during startup - causes timeouts
-except ImportError:
-    print("⚠️ SpaCy not available")
+# try:
+#     import spacy
+#     try:
+#         nlp = spacy.load("en_core_web_sm")
+#         print("✅ SpaCy model loaded successfully")
+#     except OSError:
+#         print("⚠️ SpaCy model not found, skipping for now")
+#         # Don't download during startup - causes timeouts
+# except ImportError:
+#     print("⚠️ SpaCy not available")
 print("=== LOADING FLASK ===")
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
@@ -288,5 +288,5 @@ def internal_error(error):
     return render_template('error.html', error_code=500, error_message='Internal server error'), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    port = int(os.environ.get('PORT', 10000))
+    app.run(debug=False, host='0.0.0.0', port=port)
